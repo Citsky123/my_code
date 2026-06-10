@@ -1,0 +1,21 @@
+{
+    "manifest_version": 3,
+    "name": "下载",
+    "version": "1.0.0",
+    "description": "这是一段描述",
+    "icons":{
+        "16":"images/settings.png",
+        "32":"images/settings.png",
+        "48":"images/settings.png"
+    },
+    "action":{
+        "default_icon":"images/settings.png"
+    },
+    "background":{
+        "service_worker":"js/background.js"
+    },
+    "permissions":[
+        "scripting",
+        "activeTab"
+    ]
+}
