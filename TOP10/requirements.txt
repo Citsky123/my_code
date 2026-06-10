@@ -1,0 +1,19 @@
+# requirements.txt
+# 数据库连接和数据处理
+dbilib>=0.4.1[citation:1]
+SQLAlchemy>=1.4.0
+pandas>=1.3.0
+numpy>=1.21.0
+
+# 数据库驱动（根据你的数据库选择）
+mysql-connector-python>=8.0.0  # MySQL
+# cx_Oracle>=8.0.0  # Oracle
+# pyodbc>=4.0.0  # SQL Server
+
+# Web框架和可视化
+Flask>=2.0.0
+plotly>=5.0.0
+dash>=2.0.0  # 可选，用于更高级的交互式仪表板
+
+# 本地HTTP服务器（备用）
+whttpserver>=1.3.11[citation:3]

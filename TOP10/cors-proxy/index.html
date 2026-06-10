@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>调试 - 调度工单</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.2/styles/ag-theme-alpine.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.3.2/dist/ag-grid-community.min.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        #log { background: #1e1e1e; color: #d4d4d4; padding: 12px; border-radius: 8px; max-height: 300px; overflow: auto; font-size: 12px; margin-bottom: 20px; }
+        #gridContainer { height: 600px; background: white; border-radius: 8px; }
+        .error { color: #f48771; }
+    </style>
+</head>
+<body>
+<div style="max-width: 1400px; margin: 0 auto;">
+    <h2>🔍 调试模式 - 查看控制台输出</h2>
+    <div id="log">等待数据加载...</div>
+    <div id="gridContainer"></div>
+</div>
+
+<script>
+    const API_URL = '/api/orders';
+    let gridApi = null;
+
+    function log(msg, type = 'info') {
+        const logDiv = document.getElementById('log');
+        const color = type === 'error' ? 'red' : (type === 'success' ? 'lightgreen' : 'white');
+        logDiv.innerHTML += `<div style="color:${color}">${new Date().toLocaleTimeString()} - ${msg}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+        console.log(msg);
+    }
+
+    async function loadData() {
+        log('开始请求数据: ' + API_URL);
+        try {
+            const response = await fetch(API_URL);
+            log(`响应状态: ${response.status}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const rawJson = await response.json();
+            log(`原始返回数据类型: ${typeof rawJson}`);
+            
+            let data = rawJson;
+            if (typeof data === 'string') {
+                log('检测到字符串，进行二次 JSON.parse');
+                try {
+                    data = JSON.parse(data);
+                    log('二次解析成功，新数据类型: ' + typeof data);
+                } catch (e) {
+                    throw new Error('二次解析失败: ' + e.message);
+                }
+            }
+            
+            if (!Array.isArray(data)) {
+                log('数据不是数组，尝试提取常见字段', 'error');
+                if (data.data && Array.isArray(data.data)) data = data.data;
+                else if (data.list && Array.isArray(data.list)) data = data.list;
+                else if (data.orders && Array.isArray(data.orders)) data = data.orders;
+                else data = [data];
+            }
+            
+            log(`最终数据是否为数组: ${Array.isArray(data)}，长度: ${data?.length}`, Array.isArray(data) ? 'success' : 'error');
+            if (!Array.isArray(data) || data.length === 0) throw new Error('有效数据为空');
+            
+            const firstItem = data[0];
+            log(`第一条数据类型: ${typeof firstItem}，是否为对象: ${typeof firstItem === 'object'}`, typeof firstItem === 'object' ? 'success' : 'error');
+            if (typeof firstItem !== 'object') throw new Error('首项不是对象');
+            
+            // 动态生成列（取所有键）
+            const fields = Object.keys(firstItem);
+            log(`提取到字段: ${fields.join(', ')}`);
+            
+            const columnDefs = fields.map(field => ({
+                field: field,
+                headerName: field,  // 先显示原始字段名，避免映射干扰
+                sortable: true,
+                filter: 'agTextColumnFilter',
+                floatingFilter: true,
+                resizable: true
+            }));
+            
+            // 清空容器
+            const container = document.getElementById('gridContainer');
+            container.innerHTML = '';
+            const gridDiv = document.createElement('div');
+            gridDiv.style.height = '100%';
+            gridDiv.style.width = '100%';
+            container.appendChild(gridDiv);
+            
+            log('开始创建 AG Grid...');
+            const gridOptions = {
+                columnDefs: columnDefs,
+                rowData: data,
+                pagination: true,
+                paginationPageSize: 20,
+                onGridReady: params => {
+                    gridApi = params.api;
+                    setTimeout(() => params.api.sizeColumnsToFit(), 100);
+                    log('✅ 表格渲染完成！', 'success');
+                }
+            };
+            gridApi = agGrid.createGrid(gridDiv, gridOptions);
+            log('AG Grid 创建指令已发送');
+        } catch (err) {
+            log(`❌ 错误: ${err.message}`, 'error');
+            console.error(err);
+        }
+    }
+    
+    loadData();
+</script>
+</body>
+</html>
